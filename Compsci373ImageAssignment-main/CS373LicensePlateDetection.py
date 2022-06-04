@@ -6,6 +6,8 @@ from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
 # import our basic, light-weight png reader library
+# this is our module that performs the reading of a png image
+# it is part of the skeleton code
 import imageIO.png
 
 # this function reads an RGB color png file and returns width, height, as well as pixel arrays for r,g,b
@@ -47,6 +49,21 @@ def readRGBImageToSeparatePixelArrays(input_filename):
 
     return (image_width, image_height, pixel_array_r, pixel_array_g, pixel_array_b)
 
+class Queue:
+    def __init__(self):
+        self.items = []
+
+    def isEmpty(self):
+        return self.items == []
+
+    def enqueue(self, item):
+        self.items.insert(0,item)
+
+    def dequeue(self):
+        return self.items.pop()
+
+    def size(self):
+        return len(self.items)
 
 # a useful shortcut method to create a list of lists based array representation for an image, initialized with a value
 def createInitializedGreyscalePixelArray(image_width, image_height, initValue = 0):
@@ -54,8 +71,29 @@ def createInitializedGreyscalePixelArray(image_width, image_height, initValue = 
     new_array = [[initValue for x in range(image_width)] for y in range(image_height)]
     return new_array
 
+# TO BE IMPLEMENTED by students (see coderunner)
+#FROM CODERUNNER - CONVERTING INTO GREYSCALE PIXEL ARRAY
+# Week 1
+def computeRGBToGreyscale(pixel_array_r, pixel_array_g, pixel_array_b, image_width, image_height):
+    
+    greyscale_pixel_array = createInitializedGreyscalePixelArray(image_width, image_height)
+
+    # greyscale intensity (g) =0.299*r+0.587*g+0.114*b 
+    for row in range(image_height):
+        for col in range(image_width):
+            num = (0.299*pixel_array_r[row][col]) + (0.587*pixel_array_g[row][col]) + (0.114*pixel_array_b[row][col])
+            greyscale_pixel_array[row][col] = int(round(num))
+
+    return greyscale_pixel_array
 
 
+
+
+
+
+
+
+    
 # This is our code skeleton that performs the license plate detection.
 # Feel free to try it on your own images of cars, but keep in mind that with our algorithm developed in this lecture,
 # we won't detect arbitrary or difficult to detect license plates!

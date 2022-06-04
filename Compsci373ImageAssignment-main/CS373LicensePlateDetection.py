@@ -90,10 +90,24 @@ def computeRGBToGreyscale(pixel_array_r, pixel_array_g, pixel_array_b, image_wid
 
 
 
+#FROM CODERUNNER - SCALING THE GREYSCALE ARRAY TO 0-255 RANGE
+# Takes as input a greyscale pixel array and computes the minimum and maximum greyvalue.
+# Returns minimum and maximum greyvalue as a tuple
 
-
-
+def computeMinAndMaxValues(pixel_array, image_width, image_height):
     
+    # returns a tuple (min_value, max_value) ==> each single value
+    
+    min_val = pixel_array[0][0] #some arbitrary number to be replaced
+    max_val = 0
+
+    for row in range(image_height):
+        for col in range(image_width):
+            if pixel_array[row][col] < min_val:
+                min_val = pixel_array[row][col]
+            elif pixel_array[row][col] > max_val:
+                max_val = pixel_array[row][col]
+    return (min_val, max_val)    
 # This is our code skeleton that performs the license plate detection.
 # Feel free to try it on your own images of cars, but keep in mind that with our algorithm developed in this lecture,
 # we won't detect arbitrary or difficult to detect license plates!

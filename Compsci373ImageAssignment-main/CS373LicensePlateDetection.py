@@ -5,6 +5,7 @@ import time # used to display program's runtime
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
+
 # import our basic, light-weight png reader library
 # this is our module that performs the reading of a png image
 import imageIO.png
@@ -390,8 +391,19 @@ def main():
 
 
     # Draw a bounding box as a rectangle into the input image
+    # This for loop can switch grey image to colorful image.
+    rgb = []
+    for i in range(image_height):
+        row=[]
+        for j in range(image_width):
+            tri = []
+            tri.append(px_array_r[i][j])
+            tri.append(px_array_g[i][j])
+            tri.append(px_array_b[i][j])
+            row.append(tri)
+        rgb.append(row)
     axs1[1, 1].set_title('Final image of detection')
-    axs1[1, 1].imshow(px_array, cmap='gray')
+    axs1[1, 1].imshow(rgb, cmap='gray')
     rect = Rectangle((bbox_min_x, bbox_min_y), bbox_max_x - bbox_min_x, bbox_max_y - bbox_min_y, linewidth=1,
                      edgecolor='g', facecolor='none')
     axs1[1, 1].add_patch(rect)

@@ -1,27 +1,14 @@
 import math
 import sys
 from pathlib import Path
-from time import time # used to display program's runtime
+import time # used to display program's runtime
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 
 # import our basic, light-weight png reader library
+# this is our module that performs the reading of a png image
 import imageIO.png
-class Queue:
-    def __init__(self):
-        self.items = []
 
-    def isEmpty(self):
-        return self.items == []
-
-    def enqueue(self, item):
-        self.items.insert(0,item)
-
-    def dequeue(self):
-        return self.items.pop()
-
-    def size(self):
-        return len(self.items)
 # this function reads an RGB color png file and returns width, height, as well as pixel arrays for r,g,b
 def readRGBImageToSeparatePixelArrays(input_filename):
 
@@ -60,53 +47,75 @@ def readRGBImageToSeparatePixelArrays(input_filename):
         pixel_array_b.append(pixel_row_b)
 
     return (image_width, image_height, pixel_array_r, pixel_array_g, pixel_array_b)
+class Queue:
+    def __init__(self):
+        self.items = []
+
+    def isEmpty(self):
+        return self.items == []
+
+    def enqueue(self, item):
+        self.items.insert(0,item)
+
+    def dequeue(self):
+        return self.items.pop()
+
+    def size(self):
+        return len(self.items)
 # a useful shortcut method to create a list of lists based array representation for an image, initialized with a value
+
+# Creates a two dimensional array representing an image as a very simple (not very efficient) list of lists
+# datastructure.
+# The outer list is covering all the image rows. Each row is an inner list covering the columns of the image.
 def createInitializedGreyscalePixelArray(image_width, image_height, initValue = 0):
 
-    new_array = [[initValue for x in range(image_width)] for y in range(image_height)]
-    return new_array
+    new_pixel_array = [[initValue for x in range(image_width)] for y in range(image_height)]
+    return new_pixel_array
 def computeStandardDeviationImage5x5RepeatBorder(pixel_array, image_width, image_height):
     new = createInitializedGreyscalePixelArray(image_width, image_height)
     for y in range(image_height):
         for x in range(image_width):
-            std = 0
-            cache_list = []
+            ret = 0
+            catch_list = []
             for m in range(-2,3):
                 for n in range(-2,3):
-                    cache_list.append(pixel_array[max(min(y+n,image_height-1),0)][max(min(x+m,image_width-1),0)])
-            average = sum(cache_list)/len(cache_list)
-            for i in cache_list:
-                std+=(i-average)**2
-            new[y][x] = math.sqrt(std/len(cache_list))
+                    catch_list.append(pixel_array[max(min(y+n,image_height-1),0)][max(min(x+m,image_width-1),0)])
+            average = sum(catch_list)/len(catch_list)
+            for i in catch_list:
+                ret+=(i-average)**2
+            new[y][x] = math.sqrt(ret/len(catch_list))
     return new
 def computeThresholdGE(pixel_array, threshold_value, image_width, image_height):
-    new_image = createInitializedGreyscalePixelArray(image_width, image_height)
+    new_im = createInitializedGreyscalePixelArray(image_width, image_height)
     for i in range(image_height):
         for j in range(image_width):
             if pixel_array[i][j]<threshold_value:
-                new_image[i][j] = 0
+                new_im[i][j] = 0
             else:
-                new_image[i][j] = 255
-    return new_image
+                new_im[i][j] = 255
+    return new_im
+"""
+FROM CODERUNNER - SCALING THE GREYSCALE ARRAY TO 0-255 RANGE
+"""
 def scaleTo0And255AndQuantize(pixel_array, image_width, image_height):
     #min_val, max_val = computeMinAndMaxValues(pixel_array, image_width, image_height)
-    grey_array = createInitializedGreyscalePixelArray(image_width, image_height)
+    new = createInitializedGreyscalePixelArray(image_width, image_height)
+    minim = pixel_array[0][0]
+    maxim = pixel_array[0][0]
 
-    maxi = pixel_array[0][0]
-    mini = pixel_array[0][0]
     for i in pixel_array:
         for j in i:
-            if j>maxi:
-                maxi=j
-            if j<mini:
-                mini = j
-    original_range = maxi - mini
+            if j>maxim:
+                maxim=j
+            if j<minim:
+                minim = j
+    original_range = maxim - minim
     if original_range ==0:
         original_range +=1
     for i in range(image_height):
         for j in range(image_width):
-            grey_array[i][j]=round(255*(pixel_array[i][j]-mini)/original_range)
-    return grey_array
+            new[i][j]=round(255*(pixel_array[i][j]-minim)/original_range)
+    return new
 def computeHistogram(pixel_array, image_width, image_height, nr_bins):
     seen = []
     for x in range(nr_bins):
@@ -116,7 +125,7 @@ def computeHistogram(pixel_array, image_width, image_height, nr_bins):
             seen[j]+=1
     return seen
 def computeAdaptiveThreshold(pixel_array,image_width,image_height,iterations=10):
-    current_iteration = 0
+    current_iter = 0
     theta = 0
     index = 0
     histogram = computeHistogram(pixel_array,image_width,image_height,256)
@@ -124,14 +133,14 @@ def computeAdaptiveThreshold(pixel_array,image_width,image_height,iterations=10)
         theta += i*index
         index+=1
     theta /= sum(histogram)
-    while (current_iteration<iterations):
+    while current_iter<iterations:
         theta_bg = 0
         theta_ob = 0
         theta_bg_count = 0
         theta_ob_count = 0
         index = 0
         for i in histogram:
-            if(index<theta):
+            if index<theta:
                 theta_bg+=i*index
                 theta_bg_count+=i
             else:
@@ -141,45 +150,49 @@ def computeAdaptiveThreshold(pixel_array,image_width,image_height,iterations=10)
         theta_bg /= max(theta_bg_count,1)
         theta_ob /= max(theta_ob_count,1)
         theta = (theta_bg+theta_ob)/2
-        current_iteration+=1
-    return theta+80
+        current_iter+=1
+    return theta+85
 """
 FROM CODERUNNER - EROSION
 """
 def computeErosion8Nbh3x3FlatSE(pixel_array, image_width, image_height):
-    ret = createInitializedGreyscalePixelArray(image_width, image_height)
-    count_list = []
+    new = createInitializedGreyscalePixelArray(image_width, image_height)
+    ct_list = []
     for y in range(image_height):
         for x in range(image_width):
             for m in range(-1, 2):
                 for n in range(-1, 2):
                     if (x + m < 0) or (x + m >= image_width) or (y + n < 0) or (y + n >= image_height):
-                        count_list.append(0)
+                        ct_list.append(0)
                     else:
-                        count_list.append(pixel_array[y + n][x + m])
-            count_list.sort()
-            ret[y][x] = min(1, count_list[0])
-            count_list = []
-    return ret
+                        ct_list.append(pixel_array[y + n][x + m])
+            ct_list.sort()
+            new[y][x] = min(1, ct_list[0])
+            ct_list = []
+    return new
 
 """
 FROM CODERUNNER - DILATION
 """
 def computeDilation8Nbh3x3FlatSE(pixel_array, image_width, image_height):
-    ret = createInitializedGreyscalePixelArray(image_width, image_height)
-    count_list = []
+    new = createInitializedGreyscalePixelArray(image_width, image_height)
+    ct_list = []
     for y in range(image_height):
         for x in range(image_width):
             for m in range(-1,2):
                 for n in range(-1,2):
                     if (x+m<0) or (x+m>=image_width) or (y+n<0) or (y+n>=image_height):
-                        count_list.append(0)
+                        ct_list.append(0)
                     else:
-                        count_list.append(pixel_array[y+n][x+m])
-            count_list.sort()
-            ret[y][x] = min(1,count_list[-1])
-            count_list = []
-    return ret
+                        ct_list.append(pixel_array[y+n][x+m])
+            ct_list.sort()
+            new[y][x] = min(1,ct_list[-1])
+            ct_list = []
+    return new
+
+"""
+FROM CODERUNNER - CONNECTED COMPONENT ANALYSIS
+"""
 def computeConnectedComponentLabeling(pixel_array, image_width, image_height):
     # keep track of pixels that have been visited
     visited = [[0 for x in range(image_width)] for y in range(image_height)]
@@ -245,7 +258,10 @@ def computeConnectedComponentLabeling(pixel_array, image_width, image_height):
                 continue
 
     return labels, num_pixel_counts
-
+# returns the pixel array and their connected components, as well as a dictionary displaying number of pixels per component
+"""
+FROM CODERUNNER - CONVERTING INTO GREYSCALE PIXEL ARRAY
+"""
 def computeRGBToGreyscale(pixel_array_r, pixel_array_g, pixel_array_b, image_width, image_height):
     greyscale_pixel_array = createInitializedGreyscalePixelArray(image_width, image_height)
 
@@ -268,7 +284,7 @@ def computeRGBToGreyscale(pixel_array_r, pixel_array_g, pixel_array_b, image_wid
 
 
 
-def setBoundry(connect_array,image_width,image_height,connect_dictionary):
+def setTheBoundry(connect_array,image_width,image_height,connect_dictionary):
     max_connect = 1
     print(connect_dictionary)
     for i in connect_dictionary.keys():
@@ -290,7 +306,9 @@ def setBoundry(connect_array,image_width,image_height,connect_dictionary):
 # Feel free to try it on your own images of cars, but keep in mind that with our algorithm developed in this lecture,
 # we won't detect arbitrary or difficult to detect license plates!
 def main():
-    start = time()
+
+    total_time = time.time()
+    start_time = time.time()
     command_line_arguments = sys.argv[1:]
 
     SHOW_DEBUG_FIGURES = True
@@ -315,7 +333,7 @@ def main():
     # we read in the png file, and receive three pixel arrays for red, green and blue components, respectively
     # each pixel array contains 8 bit integer values between 0 and 255 encoding the color values
     (image_width, image_height, px_array_r, px_array_g, px_array_b) = readRGBImageToSeparatePixelArrays(input_filename)
-
+    print("readRGBImageToSeparatePixelArrays: %s seconds" % (time.time() - start_time))
     # setup the plots for intermediate results in a figure
     fig1, axs1 = pyplot.subplots(2, 2)
     axs1[0, 0].set_title('Input red channel of image')
@@ -327,21 +345,34 @@ def main():
 
 
     # STUDENT IMPLEMENTATION here
-
+    # first we have to convert the red, green and blue pixel arrays to a greyscale representation.
+    start_time = time.time()
     px_array = computeRGBToGreyscale(px_array_r, px_array_g, px_array_b, image_width, image_height)
-    px_array = computeStandardDeviationImage5x5RepeatBorder(px_array, image_width, image_height)
-    px_array = scaleTo0And255AndQuantize(px_array, image_width, image_height)
+    print("computeRGBToGreyscale: %s seconds" % (time.time() - start_time))
 
+    start_time = time.time()
+    px_array = computeStandardDeviationImage5x5RepeatBorder(px_array, image_width, image_height)
+    print("computeStandardDeviationImage5x5RepeatBorder: %s seconds" % (time.time() - start_time))
+
+    start_time = time.time()
+    px_array = scaleTo0And255AndQuantize(px_array, image_width, image_height)
+    print("scaleTo0And255AndQuantize: %s seconds" % (time.time() - start_time))
+
+    start_time = time.time()
     threshold = computeAdaptiveThreshold(px_array,image_width,image_height,50)
     px_array = computeThresholdGE(px_array, threshold, image_width, image_height)
+    print("computeThresholdGE: %s seconds" % (time.time() - start_time))
 
+    start_time = time.time()
     px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
     #px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
     #px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
     px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
     #px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
     #px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
+    print("computeDilation8Nbh3x3FlatSE/computeErosion8Nbh3x3FlatSE: %s seconds" % (time.time() - start_time))
 
+    start_time = time.time()
     #(px_array, cd) = computeConnectedComponentLabeling(px_array, image_width, image_height)
     #px_array = scaleTo0And255AndQuantize(px_array, image_width, image_height)
     (connect_array,cd) = computeConnectedComponentLabeling(px_array, image_width, image_height)
@@ -352,8 +383,8 @@ def main():
     #bbox_max_x = center_x + image_width / 4.0
     #bbox_min_y = center_y - image_height / 4.0
     #bbox_max_y = center_y + image_height / 4.0
-    (bbox_min_x,bbox_max_x,bbox_min_y,bbox_max_y)=setBoundry(connect_array,image_width,image_height,cd)
-
+    (bbox_min_x,bbox_max_x,bbox_min_y,bbox_max_y)=setTheBoundry(connect_array,image_width,image_height,cd)
+    print("computeConnectedComponentLabeling/setTheBoundry: %s seconds" % (time.time() - start_time))
 
 
 
@@ -374,7 +405,7 @@ def main():
     if SHOW_DEBUG_FIGURES:
         # plot the current figure
         pyplot.show()
-        print("Runtime: {} seconds".format(time() - start))
+        print("Total_time: %s seconds" % (time.time() - total_time))
 
 if __name__ == "__main__":
     main()

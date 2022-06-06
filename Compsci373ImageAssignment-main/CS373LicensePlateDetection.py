@@ -275,7 +275,20 @@ def computeRGBToGreyscale(pixel_array_r, pixel_array_g, pixel_array_b, image_wid
     return greyscale_pixel_array
 
 
-
+# This method packs together three individual pixel arrays for r, g and b values into a single array that is fit for
+# use in matplotlib's imshow method
+def prepareRGBImageForImshowFromIndividualArrays(r,g,b,w,h):
+    rgbIm = []
+    for y in range(h):
+        row = []
+        for x in range(w):
+            triple = []
+            triple.append(r[y][x])
+            triple.append(g[y][x])
+            triple.append(b[y][x])
+            row.append(triple)
+        rgbIm.append(row)
+    return rgbIm
 
 
 
@@ -315,7 +328,7 @@ def main():
     SHOW_DEBUG_FIGURES = True
 
     # this is the default input image filename
-    input_filename = "numberplate1.png"
+    input_filename = "numberplate5.png"
 
     if command_line_arguments != []:
         input_filename = command_line_arguments[0]
@@ -392,18 +405,9 @@ def main():
 
     # Draw a bounding box as a rectangle into the input image
     # This for loop can switch grey image to colorful image.
-    rgb = []
-    for i in range(image_height):
-        row=[]
-        for j in range(image_width):
-            tri = []
-            tri.append(px_array_r[i][j])
-            tri.append(px_array_g[i][j])
-            tri.append(px_array_b[i][j])
-            row.append(tri)
-        rgb.append(row)
+    pyplot.imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height))
     axs1[1, 1].set_title('Final image of detection')
-    axs1[1, 1].imshow(rgb, cmap='gray')
+    axs1[1, 1].imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height), cmap='gray')
     rect = Rectangle((bbox_min_x, bbox_min_y), bbox_max_x - bbox_min_x, bbox_max_y - bbox_min_y, linewidth=1,
                      edgecolor='g', facecolor='none')
     axs1[1, 1].add_patch(rect)

@@ -152,7 +152,7 @@ def computeAdaptiveThreshold(pixel_array,image_width,image_height,iterations=10)
         theta_ob /= max(theta_ob_count,1)
         theta = (theta_bg+theta_ob)/2
         current_iter+=1
-    return theta+85
+    return theta+100
 """
 FROM CODERUNNER - EROSION
 """
@@ -195,70 +195,46 @@ def computeDilation8Nbh3x3FlatSE(pixel_array, image_width, image_height):
 FROM CODERUNNER - CONNECTED COMPONENT ANALYSIS
 """
 def computeConnectedComponentLabeling(pixel_array, image_width, image_height):
-    # keep track of pixels that have been visited
-    visited = [[0 for x in range(image_width)] for y in range(image_height)]
-    # keep track of labels per pixel -- shows the different components later
-    labels = [[0 for x in range(image_width)] for y in range(image_height)]
-    # keep track of the number of components and their pixel counts
-    num_pixel_counts = {}
-    current_label = 1
+    currentLabel = 1
+    visited = set()
+    ccl = [[0 for i in range(image_width)] for j in range(image_height)]
 
     for i in range(image_height):
         for j in range(image_width):
-
-            # if pixel not visited AND NOT a background pixel
-            if pixel_array[i][j] > 0 and visited[i][j] == 0:
+            val = pixel_array[i][j]
+            if (val != 0) and ((i, j) not in visited):
                 q = Queue()
-                num_pixel_counts[current_label] = 0
-                q.enqueue([i, j])
-                visited[i][j] = 1  # mark as visited
+                q.enqueue((i, j))
+                visited.add((i, j))
+                count = 0
+                while q.size() != 0:
+                    x, y = q.dequeue()
+                    ccl[x][y] = currentLabel
+                    # Left
+                    if (0 <= y - 1) and (pixel_array[x][y - 1] != 0) and ((x, y - 1) not in visited):
+                        q.enqueue((x, y - 1))
+                        visited.add((x, y - 1))
+                    # Right
+                    if (y + 1 < image_width) and (pixel_array[x][y + 1] != 0) and ((x, y + 1) not in visited):
+                        q.enqueue((x, y + 1))
+                        visited.add((x, y + 1))
+                    # Upper
+                    if (0 <= x - 1) and (pixel_array[x - 1][y] != 0) and ((x - 1, y) not in visited):
+                        q.enqueue((x - 1, y))
+                        visited.add((x - 1, y))
+                    # Lower
+                    if (x + 1 < image_height) and (pixel_array[x + 1][y] != 0) and ((x + 1, y) not in visited):
+                        q.enqueue((x + 1, y))
+                        visited.add((x + 1, y))
 
-                while bool(q.isEmpty()) == False:  # while queue isn't empty
-                    new_pixel = q.dequeue()  # new_pixel == [row,col], RETURNS INDICES OF THE DEQUEUED PIXEL
-                    # get the indices of the dequeued pixel
-                    row = new_pixel[0]
-                    col = new_pixel[1]
-                    labels[row][col] = current_label  # assign current pixel with label
-                    num_pixel_counts[current_label] += 1  # increment because dequeued pixel has been labelled
+                currentLabel += 1
 
-                    # get the neighbours of the current dequeued pixel
-                    left = pixel_array[row][col - 1]
-                    right = pixel_array[row][col + 1]
-                    top = pixel_array[row - 1][col]
-                    bottom = pixel_array[row + 1][col]
-
-                    # ASSIGN LABELS TO NEIGHBOURS THAT haven't BEEN VISITED
-
-                    # LEFT NEIGHBOUR
-                    if (row < image_height) and ((col - 1) < image_width) and (left > 0 and visited[row][col - 1] == 0):
-                        q.enqueue([row, col - 1])
-                        visited[row][col - 1] = 1
-                        labels[row][col - 1] = current_label
-
-                    # RIGHT NEIGHBOUR
-                    if (row < image_height) and ((col + 1) < image_width) and (
-                            right > 0 and visited[row][col + 1] == 0):
-                        q.enqueue([row, col + 1])
-                        visited[row][col + 1] = 1
-                        labels[row][col + 1] = current_label
-
-                    # TOP NEIGHBOUR
-                    if ((row - 1) < image_height) and (col < image_width) and (top > 0 and visited[row - 1][col] == 0):
-                        q.enqueue([row - 1, col])
-                        visited[row - 1][col] = 1
-                        labels[row - 1][col] = current_label
-
-                    # BOTTOM NEIGHBOUR
-                    if ((row + 1) < image_height) and (col < image_width) and (
-                            bottom > 0 and visited[row + 1][col] == 0):
-                        q.enqueue([row + 1, col])
-                        visited[row + 1][col] = 1
-                        labels[row + 1][col] = current_label
-                current_label += 1
-            else:
-                continue
-
-    return labels, num_pixel_counts
+    # Count number of pixels in each component
+    counts = {}
+    for i in range(1, currentLabel):
+        count = sum(x.count(i) for x in ccl)
+        counts[i] = count
+    return ccl, counts
 # returns the pixel array and their connected components, as well as a dictionary displaying number of pixels per component
 """
 FROM CODERUNNER - CONVERTING INTO GREYSCALE PIXEL ARRAY
@@ -328,7 +304,7 @@ def main():
     SHOW_DEBUG_FIGURES = True
 
     # this is the default input image filename
-    input_filename = "numberplate5.png"
+    input_filename = "numberplate1.png"
 
     if command_line_arguments != []:
         input_filename = command_line_arguments[0]
@@ -379,11 +355,11 @@ def main():
 
     start_time = time.time()
     px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
-    #px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
-    #px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
+    px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
+    px_array = computeDilation8Nbh3x3FlatSE(px_array, image_width, image_height)
     px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
-    #px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
-    #px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
+    px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
+    px_array = computeErosion8Nbh3x3FlatSE(px_array, image_width, image_height)
     print("computeDilation8Nbh3x3FlatSE/computeErosion8Nbh3x3FlatSE: %s seconds" % (time.time() - start_time))
 
     start_time = time.time()
@@ -405,7 +381,7 @@ def main():
 
     # Draw a bounding box as a rectangle into the input image
     # This for loop can switch grey image to colorful image.
-    pyplot.imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height))
+    #pyplot.imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height))
     axs1[1, 1].set_title('Final image of detection')
     axs1[1, 1].imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height), cmap='gray')
     rect = Rectangle((bbox_min_x, bbox_min_y), bbox_max_x - bbox_min_x, bbox_max_y - bbox_min_y, linewidth=1,

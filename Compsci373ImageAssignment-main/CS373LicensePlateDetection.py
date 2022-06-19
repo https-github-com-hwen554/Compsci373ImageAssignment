@@ -381,7 +381,10 @@ def main():
 
     # Draw a bounding box as a rectangle into the input image
     # This for loop can switch grey image to colorful image.
-    pyplot.imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height))
+
+
+    #pyplot.imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height))
+
     axs1[1, 1].set_title('Final image of detection')
     axs1[1, 1].imshow(prepareRGBImageForImshowFromIndividualArrays(px_array_r, px_array_g, px_array_b, image_width, image_height), cmap='gray')
     rect = Rectangle((bbox_min_x, bbox_min_y), bbox_max_x - bbox_min_x, bbox_max_y - bbox_min_y, linewidth=1,

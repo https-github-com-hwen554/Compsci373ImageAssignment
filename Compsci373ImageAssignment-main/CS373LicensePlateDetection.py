@@ -152,7 +152,7 @@ def computeAdaptiveThreshold(pixel_array,image_width,image_height,iterations=10)
         theta_ob /= max(theta_ob_count,1)
         theta = (theta_bg+theta_ob)/2
         current_iter+=1
-    return theta+100
+    return theta+50
 """
 FROM CODERUNNER - EROSION
 """

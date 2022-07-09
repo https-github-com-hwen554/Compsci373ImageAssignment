@@ -73,6 +73,7 @@ for q in range(len(lookup_table)):
 
 
 **Answer**：
+```
 image_width = 6
 image_height = 6
 pixel_array = [ [64, 102, 102, 102, 76, 76],
@@ -94,3 +95,4 @@ for y in range(image_height):
       out_array[y][x] = int(round(lookup_table[ pixel_array[y][x] ]))
 for i in range(len(out_array)):
    print(out_array[i])
+```
